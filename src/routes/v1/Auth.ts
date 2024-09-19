@@ -1,0 +1,238 @@
+import { Elysia, t } from 'elysia';
+import { PrismaClient, Role, Useage_Status, Account_status } from '@prisma/client';
+import { jwt } from '@elysiajs/jwt';
+import { randomInt } from 'crypto';
+
+const prisma = new PrismaClient();
+const SECRET_KEY = process.env.SECRET_KEY;
+
+if (!SECRET_KEY) {
+    throw new Error('SECRET_KEY is not defined.');
+}
+
+interface TempUser {
+    firstname: string;
+    lastname: string;
+    tel: string;
+    email: string;
+    password: string;
+    otp: string;
+    otp_expiry: Date;
+}
+
+type JWTPayload = {
+    user_id: number;
+    role: string;
+}
+
+const tempUsers = new Map<string, TempUser>();
+
+const app = new Elysia()
+    .use(jwt({ name: 'jwt', secret: SECRET_KEY }))
+    .post('/register', async ({ body, set }) => {
+        const { firstname, lastname, tel, email, password } = body;
+        try {
+            const existingUser = await prisma.users.findUnique({
+                where: { email }
+            });
+            if (existingUser) {
+                set.status = 400;
+                return { success: false, message: 'มีอีเมลนี้อยู่ในระบบอยู่แล้ว\nกรุณาเปลี่ยนอีเมล หรือทำการเข้าสู่ระบบ' };
+            }
+
+            const hashedPassword = await Bun.password.hash(password, {
+                algorithm: "bcrypt",
+                cost: 4,
+            });
+            const otp = randomInt(100000, 999999).toString();
+            const tempUser: TempUser = {
+                firstname,
+                lastname,
+                tel,
+                email,
+                password: hashedPassword,
+                otp,
+                otp_expiry: new Date(Date.now() + 10 * 60 * 1000),
+            };
+
+            if (tempUsers.has(tel)) {
+                tempUsers.delete(tel);
+            }
+
+            tempUsers.set(tel, tempUser);
+            
+            console.log(`OTP for ${tel}: ${otp}`);
+
+            set.status = 201;
+            return {
+                success: true,
+                message: 'กรุณายืนยัน OTP เพื่อเสร็จสิ้นการสมัครสมาชิก',
+            };
+        } catch (error) {
+            console.error('Registration error:', error);
+            set.status = 500;
+            return { success: false, message: 'ข้อผิดพลาดของเซิร์ฟเวอร์ภายใน', error: (error as Error).message };
+        }
+    }, {
+        body: t.Object({
+            firstname: t.String(),
+            lastname: t.String(),
+            tel: t.String(),
+            email: t.String(),
+            password: t.String(),
+        })
+    })
+    .post('/verify-otp', async ({ body, jwt, set }) => {
+        const { phone, otp } = body;
+        try {
+            const tempUser = tempUsers.get(phone);
+            if (!tempUser) {
+                set.status = 404;
+                return { success: false, message: 'ไม่พบข้อมูลการลงทะเบียน กรุณาลงทะเบียนใหม่' };
+            }
+            if (tempUser.otp !== otp) {
+                set.status = 400;
+                return { success: false, message: 'OTP ไม่ถูกต้อง' };
+            }
+            if (tempUser.otp_expiry < new Date()) {
+                set.status = 400;
+                return { success: false, message: 'OTP หมดอายุ' };
+            }
+
+            const newUser = await prisma.users.create({
+                data: {
+                    firstname: tempUser.firstname,
+                    lastname: tempUser.lastname,
+                    tel: tempUser.tel,
+                    email: tempUser.email,
+                    password: tempUser.password,
+                    role: Role.USER,
+                    usage_status: Useage_Status.ONLINE,
+                    account_status: Account_status.ACTIVE,
+                }
+            });
+
+            // ลบข้อมูลชั่วคราว
+            tempUsers.delete(phone);
+
+            const token = await jwt.sign({ user_id: newUser.user_id, role: newUser.role });
+            return {
+                success: true,
+                token,
+                message: 'ยืนยัน OTP สำเร็จ! การลงทะเบียนเสร็จสมบูรณ์'
+            };
+        } catch (error) {
+            set.status = 500;
+            return { success: false, message: 'ข้อผิดพลาดของเซิร์ฟเวอร์ภายใน', error: (error as Error).message };
+        }
+    }, {
+        body: t.Object({
+            phone: t.String(),
+            otp: t.String(),
+        })
+    })
+    .post('/resend-otp', async ({ body, set }) => {
+        const { phone } = body;
+        try {
+            const tempUser = tempUsers.get(phone);
+            if (!tempUser) {
+                set.status = 404;
+                return { success: false, message: 'ไม่พบข้อมูลการลงทะเบียน กรุณาลงทะเบียนใหม่' };
+            }
+            const otp = randomInt(100000, 999999).toString();
+            tempUser.otp = otp;
+            tempUser.otp_expiry = new Date(Date.now() + 10 * 60 * 1000);
+            tempUsers.set(phone, tempUser);
+
+            console.log(`New OTP for ${phone}: ${otp}`);
+            return { success: true, message: 'ส่ง OTP ใหม่แล้ว' };
+        } catch (error) {
+            set.status = 500;
+            return { success: false, message: 'ข้อผิดพลาดของเซิร์ฟเวอร์ภายใน', error: (error as Error).message };
+        }
+    }, {
+        body: t.Object({
+            phone: t.String(),
+        })
+    })
+    .post('/login', async ({ body, jwt, set }) => {
+        const { email, password } = body;
+        try {
+            const user = await prisma.users.findUnique({
+                where: { email }
+            });
+            if (!user) {
+                set.status = 401;
+                return {
+                    success: false,
+                    message: "ไม่มีข้อมูลของคุณในระบบ."
+                };
+            }
+            const isPasswordValid = await Bun.password.verify(password, user.password);
+            if (!isPasswordValid) {
+                set.status = 401;
+                return {
+                    success: false,
+                    message: "รหัสผ่านไม่ถูกต้อง."
+                };
+            }
+            if (user.account_status !== Account_status.ACTIVE) {
+                set.status = 403;
+                return {
+                    success: false,
+                    message: "บัญชีของคุณถูกระงับ กรุณาติดต่อผู้ดูแลระบบ"
+                };
+            }
+            const token = await jwt.sign({ user_id: user.user_id, role: user.role });
+
+            // อัพเดตสถานะการใช้งาน
+            await prisma.users.update({
+                where: { user_id: user.user_id },
+                data: { usage_status: Useage_Status.ONLINE }
+            });
+
+            return {
+                success: true,
+                token,
+                role: user.role,
+                message: "เข้าสู่ระบบเสร็จสิ้น!"
+            };
+        } catch (error) {
+            set.status = 500;
+            return {
+                success: false,
+                message: `Something went wrong: ${(error as Error).message}`
+            };
+        }
+    }, {
+        body: t.Object({
+            email: t.String(),
+            password: t.String(),
+        })
+    })
+    .post('/logout', async ({ headers, set, jwt }) => {
+        const authHeader = headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            set.status = 401;
+            return { success: false, message: "ไม่พบ Token การยืนยันตัวตน" };
+        }
+        const token = authHeader.split(' ')[1];
+        try {
+            const payload = await jwt.verify(token) as JWTPayload;
+            if (!payload || typeof payload === 'string' || !payload.user_id) {
+                set.status = 401;
+                return { success: false, message: "Token ไม่ถูกต้อง" };
+            }
+            await prisma.users.update({
+                where: { user_id: payload.user_id },
+                data: { usage_status: Useage_Status.OFFILNE }
+            });
+            return { success: true, message: "ออกจากระบบเรียบร้อยแล้ว" };
+        } catch (error) {
+            set.status = 500;
+            return { success: false, message: `เกิดข้อผิดพลาด: ${(error as Error).message}` };
+        }
+    })
+
+
+export default app;
