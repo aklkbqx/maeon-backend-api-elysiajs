@@ -1,26 +1,60 @@
 services:
-  mariadb:
-    container_name: mariadb_maeon
-    image: mariadb
-    restart: always
-    ports:
-      - 9906:3306
+  postgresql:
+    image: postgres:16-alpine
+    container_name: postgres_maeon
     environment:
-      MARIADB_ROOT_PASSWORD: ROOT_PASSWORD
-      MARIADB_USER: username
-      MARIADB_PASSWORD: password
-      MARIADB_DATABASE: maeon_db
-      TZ: 'Asia/Bangkok'
+      POSTGRES_DB: maeon_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
     volumes:
-      - ./mariadb/data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups # เพิ่มโฟลเดอร์ backups
 
-  phpmyadmin:
-    container_name: phpmyadmin_maeon
-    image: phpmyadmin
-    restart: always
-    ports:
-      - 8888:80
+  pgadmin:
+    image: dpage/pgadmin4:8.12.0
+    container_name: pgadmin_maeon
     environment:
-      PMA_HOST: mariadb
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
     depends_on:
-      - mariadb
+      - postgresql
+
+volumes:
+  postgres_data:
+    name: maeon_postgres_data # กำหนดชื่อเฉพาะให้กับ volume
+
+networks:
+  default:
+    name: maeon_network
+
+
+
+      # mariadb:
+      #   container_name: mariadb_maeon
+      #   image: mariadb
+      #   restart: always
+      #   ports:
+      #     - 9906:3306
+      #   environment:
+      #     MARIADB_ROOT_PASSWORD: ROOT_PASSWORD
+      #     MARIADB_USER: username
+      #     MARIADB_PASSWORD: password
+      #     MARIADB_DATABASE: maeon_db
+      #     TZ: 'Asia/Bangkok'
+      # volumes:
+      #   - ./mariadb/data:/var/lib/mysql
+
+      # phpmyadmin:
+      #   container_name: phpmyadmin_maeon
+      #   image: phpmyadmin
+      #   restart: always
+      #   ports:
+      #     - 8888:80
+      #   environment:
+      #     PMA_HOST: mariadb
+      #   depends_on:
+      #     - mariadb

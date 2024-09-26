@@ -1,7 +1,8 @@
 import { Elysia, t } from 'elysia';
-import { PrismaClient, Role, Useage_Status, Account_status } from '@prisma/client';
+import { PrismaClient, Users_role, Users_usage_status, Users_account_status, } from '@prisma/client';
 import { jwt } from '@elysiajs/jwt';
 import { randomInt } from 'crypto';
+import { getThaiDate } from '../..';
 
 const prisma = new PrismaClient();
 const SECRET_KEY = process.env.SECRET_KEY;
@@ -21,7 +22,7 @@ interface TempUser {
 }
 
 type JWTPayload = {
-    user_id: number;
+    id: number;
     role: string;
 }
 
@@ -60,7 +61,7 @@ const app = new Elysia()
             }
 
             tempUsers.set(tel, tempUser);
-            
+
             console.log(`OTP for ${tel}: ${otp}`);
 
             set.status = 201;
@@ -106,16 +107,17 @@ const app = new Elysia()
                     tel: tempUser.tel,
                     email: tempUser.email,
                     password: tempUser.password,
-                    role: Role.USER,
-                    usage_status: Useage_Status.ONLINE,
-                    account_status: Account_status.ACTIVE,
+                    role: Users_role.USER,
+                    usage_status: Users_usage_status.ONLINE,
+                    statusLastUpdate: getThaiDate(),
+                    account_status: Users_account_status.ACTIVE,
+                    createdAt: getThaiDate(),
                 }
             });
 
-            // ลบข้อมูลชั่วคราว
             tempUsers.delete(phone);
 
-            const token = await jwt.sign({ user_id: newUser.user_id, role: newUser.role });
+            const token = await jwt.sign({ id: newUser.id, role: newUser.role });
             return {
                 success: true,
                 token,
@@ -176,19 +178,19 @@ const app = new Elysia()
                     message: "รหัสผ่านไม่ถูกต้อง."
                 };
             }
-            if (user.account_status !== Account_status.ACTIVE) {
+            if (user.account_status !== Users_account_status.ACTIVE) {
                 set.status = 403;
                 return {
                     success: false,
                     message: "บัญชีของคุณถูกระงับ กรุณาติดต่อผู้ดูแลระบบ"
                 };
             }
-            const token = await jwt.sign({ user_id: user.user_id, role: user.role });
+            const token = await jwt.sign({ id: user.id, role: user.role });
 
             // อัพเดตสถานะการใช้งาน
             await prisma.users.update({
-                where: { user_id: user.user_id },
-                data: { usage_status: Useage_Status.ONLINE }
+                where: { id: user.id },
+                data: { usage_status: Users_usage_status.ONLINE, statusLastUpdate: getThaiDate() }
             });
 
             return {
@@ -219,13 +221,16 @@ const app = new Elysia()
         const token = authHeader.split(' ')[1];
         try {
             const payload = await jwt.verify(token) as JWTPayload;
-            if (!payload || typeof payload === 'string' || !payload.user_id) {
+            if (!payload || typeof payload === 'string' || !payload.id) {
                 set.status = 401;
                 return { success: false, message: "Token ไม่ถูกต้อง" };
             }
             await prisma.users.update({
-                where: { user_id: payload.user_id },
-                data: { usage_status: Useage_Status.OFFILNE }
+                where: { id: payload.id },
+                data: {
+                    usage_status: Users_usage_status.OFFLINE,
+                    statusLastUpdate: getThaiDate()
+                }
             });
             return { success: true, message: "ออกจากระบบเรียบร้อยแล้ว" };
         } catch (error) {

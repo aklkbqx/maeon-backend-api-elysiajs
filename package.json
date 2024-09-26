@@ -10,12 +10,12 @@
     "@elysiajs/jwt": "^1.1.1",
     "@elysiajs/static": "^1.1.1",
     "@elysiajs/swagger": "^1.1.1",
-    "@prisma/client": "^5.19.1",
+    "@prisma/client": "^5.20.0",
     "elysia": "latest"
   },
   "devDependencies": {
     "bun-types": "latest",
-    "prisma": "^5.19.1"
+    "prisma": "^5.20.0"
   },
   "module": "src/index.js"
 }

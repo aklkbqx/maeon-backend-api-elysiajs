@@ -7,6 +7,13 @@ import { swagger } from '@elysiajs/swagger'
 
 const port = process.env.API_PORT || 5001;
 
+export function getThaiDate() {
+    const date = new Date();
+    const timezoneOffset = 7 * 60;
+    const thailandTime = new Date(date.getTime() + timezoneOffset * 60 * 1000);
+    return thailandTime.toISOString();
+}
+
 const app = new Elysia()
     .use(swagger())
     .use(cors())
