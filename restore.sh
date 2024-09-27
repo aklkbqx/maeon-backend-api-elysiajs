@@ -1,27 +1,34 @@
 #!/bin/bash
 
-# กำหนดตัวแปร
-DB_CONTAINER="postgres_maeon"
+CONTAINER_NAME="mariadb_maeon"
 DB_NAME="maeon_db"
-DB_USER="admin"
+DB_ROOT_PASSWORD="ROOT_PASSWORD"
+BACKUP_DIR="./mariadb/backups"
 
-# ตรวจสอบว่ามีการระบุไฟล์ backup หรือไม่
-if [ $# -eq 0 ]; then
-    echo "กรุณาระบุไฟล์ backup ที่ต้องการ restore"
-    echo "ตัวอย่าง: ./restore.sh ./backups/backup_20230927_120000.sql.gz"
+if [ -z "$1" ]; then
+    echo "Error: Please provide the backup file name (with .gz extension)."
     exit 1
 fi
 
-BACKUP_FILE=$1
+if [[ $1 != *.gz ]]; then
+    echo "Error: The backup file must be a .gz file."
+    exit 1
+fi
 
-# ตรวจสอบว่าไฟล์ backup มีอยู่จริง
+BACKUP_FILE="$BACKUP_DIR/$1"
+
 if [ ! -f "$BACKUP_FILE" ]; then
-    echo "ไม่พบไฟล์ backup: $BACKUP_FILE"
+    echo "Error: Backup file '$BACKUP_FILE' not found."
     exit 1
 fi
 
-# ทำการ restore
-echo "กำลัง restore จากไฟล์: $BACKUP_FILE"
-gunzip < $BACKUP_FILE | docker exec -i $DB_CONTAINER psql -U $DB_USER -d $DB_NAME
+echo "Restoring the database from '$BACKUP_FILE'..."
 
-echo "Restore completed"
+gunzip -c $BACKUP_FILE | docker exec -i $CONTAINER_NAME mariadb -u root -p$DB_ROOT_PASSWORD $DB_NAME
+
+if [ $? -eq 0 ]; then
+    echo "Database '$DB_NAME' restored successfully."
+else
+    echo "Error: Failed to restore the database."
+    exit 1
+fi

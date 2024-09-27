@@ -1,20 +1,26 @@
 #!/bin/bash
-
-# กำหนดตัวแปร
-DB_CONTAINER="postgres_maeon"
+CONTAINER_NAME="mariadb_maeon"
+BACKUP_DIR="./mariadb/backups"
 DB_NAME="maeon_db"
-DB_USER="admin"
-BACKUP_DIR="./backups"
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_FILE="${BACKUP_DIR}/backup_${TIMESTAMP}.sql"
+DB_ROOT_PASSWORD="ROOT_PASSWORD"
 
-# สร้างโฟลเดอร์ backup ถ้ายังไม่มี
-mkdir -p $BACKUP_DIR
+DATE=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="$BACKUP_DIR/mariadb_backup_$DATE.sql"
 
-# ทำการ backup
-docker exec -t $DB_CONTAINER pg_dump -U $DB_USER $DB_NAME > $BACKUP_FILE
+echo "Backing up MariaDB database '$DB_NAME' to '$BACKUP_FILE'..."
 
-# บีบอัดไฟล์ backup
-gzip $BACKUP_FILE
+docker exec -it $CONTAINER_NAME mariadb-dump -u root -p$DB_ROOT_PASSWORD $DB_NAME > $BACKUP_FILE
 
-echo "Backup completed: ${BACKUP_FILE}.gz"
+if [ $? -eq 0 ]; then
+    echo "Backup completed. Compressing the backup file..."
+    gzip $BACKUP_FILE
+    if [ $? -eq 0 ]; then
+        echo "Backup file compressed successfully: '$BACKUP_FILE.gz'"
+    else
+        echo "Error: Failed to compress the backup file."
+        exit 1
+    fi
+else
+    echo "Error: Backup failed."
+    exit 1
+fi

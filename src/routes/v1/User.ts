@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { PrismaClient, Users_role, Users_usage_status, Users_account_status, } from '@prisma/client';
+import { PrismaClient, user_role, usage_status, account_status, } from '@prisma/client';
 import { jwt } from '@elysiajs/jwt';
 import { unlink } from "node:fs/promises";
 import path from 'path';
@@ -24,11 +24,11 @@ export interface USER_TYPE {
     lastname: string;
     email: string;
     tel: string;
-    profilePicture: string;
-    role: Users_role;
-    usage_status: Users_usage_status;
+    profilepicture: string;
+    role: user_role;
+    usage_status: usage_status;
     statusLastUpdate: Date;
-    account_status: Users_account_status;
+    account_status: account_status;
     createdAt: Date
     updatedAt: Date
 }
@@ -115,20 +115,20 @@ const app = new Elysia()
                 };
             }
 
-            let profilePictureName = undefined;
+            let profilepictureName = undefined;
 
-            if (body.profilePicture) {
-                const file = body.profilePicture;
+            if (body.profilepicture) {
+                const file = body.profilepicture;
 
-                const oldFilePath = `public/images/user_images/${existingUser.profilePicture}`;
+                const oldFilePath = `public/images/user_images/${existingUser.profilepicture}`;
                 try {
-                    if (existingUser.profilePicture !== "default-profile.jpg") {
+                    if (existingUser.profilepicture !== "default-profile.jpg") {
                         await unlink(oldFilePath);
                     }
                     const fileName = `${payload.id}-${Date.now()}${path.extname(file.name)}`;
                     const filePath = `public/images/user_images/${fileName}`;
                     await Bun.write(filePath, await file.arrayBuffer());
-                    profilePictureName = fileName;
+                    profilepictureName = fileName;
 
                 } catch (error) {
                     console.error(`Error deleting file: ${error}`);
@@ -142,8 +142,8 @@ const app = new Elysia()
                 tel: body.tel,
             };
 
-            if (profilePictureName) {
-                updateData.profilePicture = profilePictureName;
+            if (profilepictureName) {
+                updateData.profilepicture = profilepictureName;
             }
 
             if (body.currentPassword && body.newPassword) {
@@ -195,7 +195,7 @@ const app = new Elysia()
             lastname: t.String(),
             email: t.String(),
             tel: t.String(),
-            profilePicture: t.Optional(t.File()),
+            profilepicture: t.Optional(t.File()),
             currentPassword: t.Optional(t.String()),
             newPassword: t.Optional(t.String())
         })
@@ -216,7 +216,7 @@ const app = new Elysia()
             const updateLastStatus = await prisma.users.update({
                 data: {
                     usage_status: status,
-                    statusLastUpdate: getThaiDate()
+                    statuslastupdate: getThaiDate()
                 },
                 where: {
                     id: payload.id
@@ -243,7 +243,7 @@ const app = new Elysia()
         }
     }, {
         params: t.Object({
-            status: t.Enum(Users_usage_status),
+            status: t.Enum(usage_status),
         })
     })
 

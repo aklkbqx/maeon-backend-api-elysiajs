@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { PrismaClient, Users_role, Users_usage_status, Users_account_status, } from '@prisma/client';
+import { PrismaClient, user_role, usage_status, account_status, } from '@prisma/client';
 import { jwt } from '@elysiajs/jwt';
 import { randomInt } from 'crypto';
 import { getThaiDate } from '../..';
@@ -107,11 +107,11 @@ const app = new Elysia()
                     tel: tempUser.tel,
                     email: tempUser.email,
                     password: tempUser.password,
-                    role: Users_role.USER,
-                    usage_status: Users_usage_status.ONLINE,
-                    statusLastUpdate: getThaiDate(),
-                    account_status: Users_account_status.ACTIVE,
-                    createdAt: getThaiDate(),
+                    role: user_role.USER,
+                    usage_status: usage_status.ONLINE,
+                    statuslastupdate: getThaiDate(),
+                    account_status: account_status.ACTIVE,
+                    createdat: getThaiDate(),
                 }
             });
 
@@ -178,7 +178,7 @@ const app = new Elysia()
                     message: "รหัสผ่านไม่ถูกต้อง."
                 };
             }
-            if (user.account_status !== Users_account_status.ACTIVE) {
+            if (user.account_status !== account_status.ACTIVE) {
                 set.status = 403;
                 return {
                     success: false,
@@ -190,7 +190,7 @@ const app = new Elysia()
             // อัพเดตสถานะการใช้งาน
             await prisma.users.update({
                 where: { id: user.id },
-                data: { usage_status: Users_usage_status.ONLINE, statusLastUpdate: getThaiDate() }
+                data: { usage_status: usage_status.ONLINE, statuslastupdate: getThaiDate() }
             });
 
             return {
@@ -228,8 +228,8 @@ const app = new Elysia()
             await prisma.users.update({
                 where: { id: payload.id },
                 data: {
-                    usage_status: Users_usage_status.OFFLINE,
-                    statusLastUpdate: getThaiDate()
+                    usage_status: usage_status.OFFLINE,
+                    statuslastupdate: getThaiDate()
                 }
             });
             return { success: true, message: "ออกจากระบบเรียบร้อยแล้ว" };
