@@ -3,7 +3,7 @@ import { PrismaClient, user_role, usage_status, account_status, } from '@prisma/
 import { jwt } from '@elysiajs/jwt';
 import { unlink } from "node:fs/promises";
 import path from 'path';
-import { getThaiDate } from '../..';
+import { getThaiDate } from '../../../lib/lib';
 
 
 const prisma = new PrismaClient();
@@ -24,7 +24,7 @@ export interface USER_TYPE {
     lastname: string;
     email: string;
     tel: string;
-    profilepicture: string;
+    profile_picture: string;
     role: user_role;
     usage_status: usage_status;
     statusLastUpdate: Date;
@@ -94,47 +94,51 @@ const app = new Elysia()
             set.status = 401;
             return { success: false, message: "ไม่พบ Token การยืนยันตัวตน" };
         }
-
         const token = authHeader.split(' ')[1];
-        try {
-            const payload = await jwt.verify(token) as JWTPayloadUser;
-            if (!payload) {
-                set.status = 401;
-                return { success: false, message: "Invalid token" };
-            }
+        
+        const payload = await jwt.verify(token) as JWTPayloadUser;
+        if (!payload) {
+            set.status = 401;
+            return { success: false, message: "Invalid token" };
+        }
 
-            const existingUser = await prisma.users.findUnique({
-                where: { id: payload.id },
-            });
+        const existingUser = await prisma.users.findUnique({
+            where: { id: payload.id },
+        });
 
-            if (!existingUser) {
-                set.status = 404;
-                return {
-                    success: false,
-                    message: "User not found",
-                };
-            }
+        if (!existingUser) {
+            set.status = 404;
+            return {
+                success: false,
+                message: "User not found",
+            };
+        }
 
-            let profilepictureName = undefined;
+        let profile_pictureName;
 
-            if (body.profilepicture) {
-                const file = body.profilepicture;
-
-                const oldFilePath = `public/images/user_images/${existingUser.profilepicture}`;
+        if (body.profile_picture) {
+            const file = body.profile_picture;
+            if (existingUser.profile_picture !== "default-profile.jpg") {
+                const oldFilePath = `public/images/user_images/${existingUser.profile_picture}`;
                 try {
-                    if (existingUser.profilepicture !== "default-profile.jpg") {
-                        await unlink(oldFilePath);
-                    }
-                    const fileName = `${payload.id}-${Date.now()}${path.extname(file.name)}`;
-                    const filePath = `public/images/user_images/${fileName}`;
-                    await Bun.write(filePath, await file.arrayBuffer());
-                    profilepictureName = fileName;
-
+                    await unlink(oldFilePath);
                 } catch (error) {
-                    console.error(`Error deleting file: ${error}`);
+                    console.error(`Error deleting old profile picture: ${error}`);
                 }
             }
 
+            try {
+                const fileName = `${payload.id}-${Date.now()}${path.extname(file.name)}`;
+                const filePath = `public/images/user_images/${fileName}`;
+                await Bun.write(filePath, await file.arrayBuffer());
+                profile_pictureName = fileName;
+            } catch (error) {
+                console.error(`Error uploading new profile picture: ${error}`);
+                return ({ success: false, message: "Failed to upload new profile picture" });
+            }
+        }
+
+        try {
             const updateData: any = {
                 firstname: body.firstname,
                 lastname: body.lastname,
@@ -142,8 +146,8 @@ const app = new Elysia()
                 tel: body.tel,
             };
 
-            if (profilepictureName) {
-                updateData.profilepicture = profilepictureName;
+            if (profile_pictureName) {
+                updateData.profile_picture = profile_pictureName;
             }
 
             if (body.currentPassword && body.newPassword) {
@@ -195,7 +199,7 @@ const app = new Elysia()
             lastname: t.String(),
             email: t.String(),
             tel: t.String(),
-            profilepicture: t.Optional(t.File()),
+            profile_picture: t.Optional(t.File()),
             currentPassword: t.Optional(t.String()),
             newPassword: t.Optional(t.String())
         })
@@ -216,7 +220,7 @@ const app = new Elysia()
             const updateLastStatus = await prisma.users.update({
                 data: {
                     usage_status: status,
-                    statuslastupdate: getThaiDate()
+                    status_last_update: getThaiDate()
                 },
                 where: {
                     id: payload.id

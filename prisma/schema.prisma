@@ -8,112 +8,130 @@ datasource db {
 }
 
 model activities {
-  id                Int                 @id @default(autoincrement())
-  name              String              @db.VarChar(255)
-  description       String?
-  duration          Int?
-  cost              Decimal?            @db.Decimal(10, 2)
-  location_id       Int
-  createdat         DateTime?           @default(now()) @db.Timestamp(6)
-  updatedat         DateTime?           @default(now()) @db.Timestamp(6)
-  locations         locations           @relation(fields: [location_id], references: [id], map: "activities_locationid_fkey")
-  programactivities programactivities[]
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  duration    Int?
+  cost        Decimal?  @db.Decimal(10, 2)
+  location_id Int
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  locations   locations @relation(fields: [location_id], references: [id], map: "activities_locationid_fkey")
 
-  @@index([location_id], map: "idx_activity_location")
+  @@index([location_id], map: "location_id")
 }
 
 model locations {
-  id             Int           @id @default(autoincrement())
-  name           String        @db.VarChar(255)
+  id             Int            @id @default(autoincrement())
+  name           String         @db.VarChar(255)
   type           Int
-  description    String?
-  address        String?
+  description    String?        @db.Text
+  address        String?        @db.Text
   subdistrict_id Int?
-  website        String?       @db.VarChar(255)
-  latitude       Decimal?      @db.Decimal(10, 8)
-  longitude      Decimal?      @db.Decimal(11, 8)
+  website        String?        @db.VarChar(255)
+  location_map   String         @db.LongText
   owner_id       Int
-  createdat      DateTime?     @default(now()) @db.Timestamp(6)
-  updatedat      DateTime?     @default(now()) @db.Timestamp(6)
+  time_slots     String         @db.LongText
+  created_at     DateTime?      @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?      @db.Timestamp(0)
   activities     activities[]
-  users          users         @relation(fields: [owner_id], references: [id])
-  subdistricts   subdistricts? @relation(fields: [subdistrict_id], references: [id], onDelete: Restrict)
-  locationtype   locationtype  @relation(fields: [type], references: [id])
+  locationtype   location_types @relation(fields: [type], references: [id], map: "locations_ibfk_1")
+  subdistricts   subdistricts?  @relation(fields: [subdistrict_id], references: [id], onDelete: Restrict, map: "locations_ibfk_2")
+  users          users          @relation(fields: [owner_id], references: [id], map: "locations_ibfk_3")
 
-  @@index([name], map: "idx_location_name")
-  @@index([owner_id], map: "idx_location_owner")
-  @@index([subdistrict_id], map: "idx_location_subdistrict")
-  @@index([type], map: "idx_location_type")
-}
-
-model locationtype {
-  id        Int         @id @default(autoincrement())
-  name      String      @unique @db.VarChar(50)
-  locations locations[]
+  @@index([owner_id], map: "owner_id")
+  @@index([subdistrict_id], map: "subdistrict_id")
+  @@index([type], map: "type")
 }
 
 model programs {
-  id                  Int                 @id @default(autoincrement())
+  id                  Int              @id @default(autoincrement())
   type                Int
-  name                String              @db.VarChar(255)
-  description         String
-  start               Json
-  end                 Json
-  duration            Int
-  total_price         Decimal             @db.Decimal(8, 2)
-  wellness_dimensions String              @default(dbgenerated("CURRENT_TIMESTAMP"))
-  createdat           DateTime            @db.Timestamp(6)
-  updatedat           DateTime            @db.Timestamp(6)
-  programtypes        programtypes        @relation(fields: [type], references: [id])
-  programactivities   programactivities[]
-}
+  name                String           @db.VarChar(255)
+  description         String           @db.Text
+  schedules           String           @db.LongText
+  total_price         Decimal          @db.Decimal(8, 2)
+  wellness_dimensions String?          @db.Text
+  created_by          Int?
+  created_at          DateTime?        @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?        @db.Timestamp(0)
+  program_images      program_images[]
+  programtypes        program_types    @relation(fields: [type], references: [id], map: "programs_ibfk_1")
+  users               users?           @relation(fields: [created_by], references: [id], onDelete: Restrict, map: "programs_ibfk_2")
 
-model programactivities {
-  id             Int        @id @default(autoincrement())
-  program_id     Int
-  activity_id    Int
-  start_time     DateTime
-  end_time       DateTime
-  sequence_order Int
-  program        programs   @relation(fields: [program_id], references: [id])
-  activity       activities @relation(fields: [activity_id], references: [id])
-}
-
-model programtypes {
-  id          Int        @id @default(autoincrement())
-  name        String     @db.VarChar(255)
-  description String
-  createdat   DateTime?  @default(now()) @db.Timestamp(6)
-  updatedat   DateTime?  @default(now()) @db.Timestamp(6)
-  programs    programs[]
+  @@index([type], map: "type")
+  @@index([created_by], map: "created_by")
 }
 
 model subdistricts {
-  id        Int         @id @default(autoincrement())
-  name      String      @unique @db.VarChar(100)
-  createdat DateTime?   @default(now()) @db.Timestamp(6)
-  updatedat DateTime?   @default(now()) @db.Timestamp(6)
-  locations locations[]
+  id         Int         @id @default(autoincrement())
+  name       String      @unique(map: "name") @db.VarChar(100)
+  created_at DateTime?   @default(now()) @db.Timestamp(0)
+  updated_at DateTime?   @db.Timestamp(0)
+  locations  locations[]
 }
 
 model users {
-  id               Int            @id @default(autoincrement())
-  firstname        String         @db.VarChar(150)
-  lastname         String         @db.VarChar(150)
-  email            String         @unique @db.VarChar(150)
-  password         String         @db.VarChar(60)
-  tel              String         @db.VarChar(20)
-  profilepicture   String         @default("default-profile.jpg") @db.VarChar(150)
-  role             user_role      @default(USER)
-  usage_status     usage_status   @default(OFFLINE)
-  statuslastupdate DateTime       @default(now()) @db.Timestamp(6)
-  account_status   account_status @default(ACTIVE)
-  createdat        DateTime?      @default(now()) @db.Timestamp(6)
-  updatedat        DateTime?      @default(now()) @db.Timestamp(6)
-  locations        locations[]
+  id                 Int                @id @default(autoincrement())
+  firstname          String             @db.VarChar(150)
+  lastname           String             @db.VarChar(150)
+  email              String             @unique(map: "email") @db.VarChar(150)
+  password           String             @db.VarChar(60)
+  tel                String             @db.VarChar(20)
+  profile_picture    String?            @default("default-profile.jpg") @db.VarChar(150)
+  role               user_role?         @default(USER)
+  usage_status       usage_status?      @default(OFFLINE)
+  status_last_update DateTime?          @default(now()) @db.Timestamp(0)
+  account_status     account_status?    @default(ACTIVE)
+  created_at         DateTime?          @default(now()) @db.Timestamp(0)
+  updated_at         DateTime?          @db.Timestamp(0)
+  locations          locations[]
+  program_bookings   program_bookings[]
+  programs           programs[]
+}
 
-  @@index([email], map: "idx_email")
-  @@index([role], map: "idx_role")
+model location_types {
+  id         Int         @id @default(autoincrement())
+  name       String      @unique(map: "name") @db.VarChar(50)
+  created_at DateTime    @default(now()) @db.Timestamp(0)
+  updated_at DateTime?   @default(now()) @db.Timestamp(0)
+  locations  locations[]
+}
+
+model program_types {
+  id          Int        @id @default(autoincrement())
+  name        String     @db.VarChar(255)
+  description String     @db.Text
+  created_at  DateTime?  @default(now()) @db.Timestamp(0)
+  updated_at  DateTime?  @default(now()) @db.Timestamp(0)
+  programs    programs[]
+}
+
+model program_bookings {
+  id               Int                             @id @default(autoincrement())
+  user_id          Int
+  booking_data     String                          @db.LongText
+  booking_date     DateTime                        @db.Date
+  total_price      Decimal                         @db.Decimal(10, 2)
+  status           program_bookings_status         @default(PENDING)
+  payment_status   program_bookings_payment_status @default(UNPAID)
+  special_requests String?                         @db.Text
+  created_at       DateTime?                       @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?                       @db.Timestamp(0)
+  users            users                           @relation(fields: [user_id], references: [id], map: "program_bookings_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model program_images {
+  id              Int       @id @default(autoincrement())
+  program_id      Int
+  image_name_data String    @db.LongText
+  created_at      DateTime  @default(now()) @db.Timestamp(0)
+  updated_at      DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
+  programs        programs  @relation(fields: [program_id], references: [id], map: "program_images_ibfk_1")
+
+  @@index([program_id], map: "program_id")
 }
 
 enum account_status {
@@ -136,4 +154,17 @@ enum user_role {
   LEARNING_RESOURCE
   HOTEL
   SEASONAL_TRAVEL
+}
+
+enum program_bookings_status {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum program_bookings_payment_status {
+  UNPAID
+  PAID
+  REFUNDED
 }

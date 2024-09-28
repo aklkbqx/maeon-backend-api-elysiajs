@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia';
 import { PrismaClient, user_role, usage_status, account_status, } from '@prisma/client';
 import { jwt } from '@elysiajs/jwt';
 import { randomInt } from 'crypto';
-import { getThaiDate } from '../..';
+import { getThaiDate } from '../../../lib/lib';
 
 const prisma = new PrismaClient();
 const SECRET_KEY = process.env.SECRET_KEY;
@@ -109,15 +109,15 @@ const app = new Elysia()
                     password: tempUser.password,
                     role: user_role.USER,
                     usage_status: usage_status.ONLINE,
-                    statuslastupdate: getThaiDate(),
+                    status_last_update: getThaiDate(),
                     account_status: account_status.ACTIVE,
-                    createdat: getThaiDate(),
+                    created_at: getThaiDate(),
                 }
             });
 
             tempUsers.delete(phone);
 
-            const token = await jwt.sign({ id: newUser.id, role: newUser.role });
+            const token = await jwt.sign({ id: newUser.id, role: newUser.role as string });
             return {
                 success: true,
                 token,
@@ -185,12 +185,12 @@ const app = new Elysia()
                     message: "บัญชีของคุณถูกระงับ กรุณาติดต่อผู้ดูแลระบบ"
                 };
             }
-            const token = await jwt.sign({ id: user.id, role: user.role });
+            const token = await jwt.sign({ id: user.id, role: user.role as string });
 
             // อัพเดตสถานะการใช้งาน
             await prisma.users.update({
                 where: { id: user.id },
-                data: { usage_status: usage_status.ONLINE, statuslastupdate: getThaiDate() }
+                data: { usage_status: usage_status.ONLINE, status_last_update: getThaiDate() }
             });
 
             return {
@@ -229,7 +229,7 @@ const app = new Elysia()
                 where: { id: payload.id },
                 data: {
                     usage_status: usage_status.OFFLINE,
-                    statuslastupdate: getThaiDate()
+                    status_last_update: getThaiDate()
                 }
             });
             return { success: true, message: "ออกจากระบบเรียบร้อยแล้ว" };
