@@ -1,17 +1,19 @@
-[
-    {
-        "program_type_id": 1,
-        "date": "2024-10-1",
-        "program_id": 1
-    },
-    {
-        "program_type_id": 1,
-        "date": "2024-10-1",
-        "program_id": 1
-    },
-    {
-        "program_type_id": 1,
-        "date": "2024-10-1",
-        "program_id": 1
-    }
-]
+{
+    "people": 2,
+    "start_date": "2024-10-15",
+    "end_date": "2024-10-17",
+    "detail": [
+        {
+            "program_id": 1,
+            "date": "2024-10-15"
+        },
+        {
+            "program_id": 2,
+            "date": "2024-10-16"
+        },
+        {
+            "program_id": 3,
+            "date": "2024-10-17"
+        }
+    ]
+}

@@ -1,8 +1,8 @@
 import { Elysia, t } from 'elysia';
 import { PrismaClient, user_role, usage_status, account_status, } from '@prisma/client';
 import { jwt } from '@elysiajs/jwt';
+import { getThaiDate, JWTPayloadUser } from '../../../lib/lib';
 import { randomInt } from 'crypto';
-import { getThaiDate } from '../../../lib/lib';
 
 const prisma = new PrismaClient();
 const SECRET_KEY = process.env.SECRET_KEY;
@@ -10,7 +10,6 @@ const SECRET_KEY = process.env.SECRET_KEY;
 if (!SECRET_KEY) {
     throw new Error('SECRET_KEY is not defined.');
 }
-
 interface TempUser {
     firstname: string;
     lastname: string;
@@ -20,17 +19,11 @@ interface TempUser {
     otp: string;
     otp_expiry: Date;
 }
-
-type JWTPayload = {
-    id: number;
-    role: string;
-}
-
 const tempUsers = new Map<string, TempUser>();
 
 const app = new Elysia()
     .use(jwt({ name: 'jwt', secret: SECRET_KEY }))
-    .post('/register', async ({ body, set }) => {
+    .post('/register', async ({ body, set, jwt }) => {
         const { firstname, lastname, tel, email, password } = body;
         try {
             const existingUser = await prisma.users.findUnique({
@@ -45,6 +38,7 @@ const app = new Elysia()
                 algorithm: "bcrypt",
                 cost: 4,
             });
+
             const otp = randomInt(100000, 999999).toString();
             const tempUser: TempUser = {
                 firstname,
@@ -187,7 +181,6 @@ const app = new Elysia()
             }
             const token = await jwt.sign({ id: user.id, role: user.role as string });
 
-            // อัพเดตสถานะการใช้งาน
             await prisma.users.update({
                 where: { id: user.id },
                 data: { usage_status: usage_status.ONLINE, status_last_update: getThaiDate() }
@@ -212,6 +205,7 @@ const app = new Elysia()
             password: t.String(),
         })
     })
+
     .post('/logout', async ({ headers, set, jwt }) => {
         const authHeader = headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -220,7 +214,7 @@ const app = new Elysia()
         }
         const token = authHeader.split(' ')[1];
         try {
-            const payload = await jwt.verify(token) as JWTPayload;
+            const payload = await jwt.verify(token) as JWTPayloadUser;
             if (!payload || typeof payload === 'string' || !payload.id) {
                 set.status = 401;
                 return { success: false, message: "Token ไม่ถูกต้อง" };

@@ -106,7 +106,6 @@ const app = new Elysia()
     })
     .get(':programId', async ({ params: { programId }, set }) => {
         try {
-            console.log(programId);
             const program = await prisma.programs.findUnique({
                 where: { id: Number(programId) },
                 include: {

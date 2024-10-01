@@ -30,8 +30,9 @@ model locations {
   subdistrict_id Int?
   website        String?        @db.VarChar(255)
   location_map   String         @db.LongText
-  owner_id       Int
   time_slots     String         @db.LongText
+  owner_id       Int
+  isActive       Boolean        @default(false)
   created_at     DateTime?      @default(now()) @db.Timestamp(0)
   updated_at     DateTime?      @db.Timestamp(0)
   activities     activities[]
@@ -72,21 +73,21 @@ model subdistricts {
 }
 
 model users {
-  id                 Int                @id @default(autoincrement())
-  firstname          String             @db.VarChar(150)
-  lastname           String             @db.VarChar(150)
-  email              String             @unique(map: "email") @db.VarChar(150)
-  password           String             @db.VarChar(60)
-  tel                String             @db.VarChar(20)
-  profile_picture    String?            @default("default-profile.jpg") @db.VarChar(150)
-  role               user_role?         @default(USER)
-  usage_status       usage_status?      @default(OFFLINE)
-  status_last_update DateTime?          @default(now()) @db.Timestamp(0)
-  account_status     account_status?    @default(ACTIVE)
-  created_at         DateTime?          @default(now()) @db.Timestamp(0)
-  updated_at         DateTime?          @db.Timestamp(0)
+  id                 Int             @id @default(autoincrement())
+  firstname          String          @db.VarChar(150)
+  lastname           String          @db.VarChar(150)
+  email              String          @unique(map: "email") @db.VarChar(150)
+  password           String          @db.VarChar(60)
+  tel                String          @db.VarChar(20)
+  profile_picture    String?         @default("default-profile.jpg") @db.VarChar(150)
+  role               user_role?      @default(USER)
+  usage_status       usage_status?   @default(OFFLINE)
+  status_last_update DateTime?       @default(now()) @db.Timestamp(0)
+  account_status     account_status? @default(ACTIVE)
+  created_at         DateTime?       @default(now()) @db.Timestamp(0)
+  updated_at         DateTime?       @db.Timestamp(0)
+  bookings           bookings[]
   locations          locations[]
-  program_bookings   program_bookings[]
   programs           programs[]
 }
 
@@ -107,22 +108,6 @@ model program_types {
   programs    programs[]
 }
 
-model program_bookings {
-  id               Int                             @id @default(autoincrement())
-  user_id          Int
-  booking_data     String                          @db.LongText
-  booking_date     DateTime                        @db.Date
-  total_price      Decimal                         @db.Decimal(10, 2)
-  status           program_bookings_status         @default(PENDING)
-  payment_status   program_bookings_payment_status @default(UNPAID)
-  special_requests String?                         @db.Text
-  created_at       DateTime?                       @default(now()) @db.Timestamp(0)
-  updated_at       DateTime?                       @db.Timestamp(0)
-  users            users                           @relation(fields: [user_id], references: [id], map: "program_bookings_ibfk_1")
-
-  @@index([user_id], map: "user_id")
-}
-
 model program_images {
   id              Int       @id @default(autoincrement())
   program_id      Int
@@ -132,6 +117,51 @@ model program_images {
   programs        programs  @relation(fields: [program_id], references: [id], map: "program_images_ibfk_1")
 
   @@index([program_id], map: "program_id")
+}
+
+model payments {
+  id               Int                     @id @default(autoincrement())
+  booking_id       Int
+  amount           Decimal                 @db.Decimal(10, 2)
+  payment_method   payments_payment_method
+  payment_data     String                  @db.LongText
+  slip_image       String                  @db.VarChar(255)
+  status           payments_status         @default(PENDING)
+  transaction_id   String?                 @db.VarChar(255)
+  payment_date     DateTime?               @db.DateTime(0)
+  created_at       DateTime?               @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?               @default(now()) @db.Timestamp(0)
+  program_bookings bookings                @relation(fields: [booking_id], references: [id], onUpdate: Restrict, map: "payments_ibfk_1")
+
+  @@index([booking_id], map: "booking_id")
+}
+
+model slip_check_count {
+  id               Int       @id @default(autoincrement())
+  remaining_checks Int       @default(10)
+  last_updated     DateTime? @default(now()) @db.Timestamp(0)
+  last_reset       DateTime? @db.Timestamp(0)
+
+  @@index([remaining_checks], map: "idx_slip_check_count_remaining")
+}
+
+model bookings {
+  id             Int                     @id @default(autoincrement())
+  user_id        Int
+  booking_detail String                  @db.LongText
+  booking_date   DateTime                @db.Date
+  start_date     DateTime                @db.Date
+  end_date       DateTime                @db.Date
+  people         Int
+  total_price    Decimal                 @db.Decimal(10, 2)
+  status         bookings_status         @default(PENDING)
+  payment_status bookings_payment_status @default(UNPAID)
+  created_at     DateTime?               @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?               @db.Timestamp(0)
+  users          users                   @relation(fields: [user_id], references: [id], map: "bookings_ibfk_1")
+  payments       payments[]
+
+  @@index([user_id], map: "user_id")
 }
 
 enum account_status {
@@ -156,15 +186,29 @@ enum user_role {
   SEASONAL_TRAVEL
 }
 
-enum program_bookings_status {
+enum payments_status {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PENDING_VERIFICATION
+  REJECTED
+}
+
+enum bookings_status {
   PENDING
   CONFIRMED
   CANCELLED
   COMPLETED
 }
 
-enum program_bookings_payment_status {
+enum bookings_payment_status {
   UNPAID
   PAID
   REFUNDED
+}
+
+enum payments_payment_method {
+  PROMPTPAY
+  BANK_TRANSFER
 }

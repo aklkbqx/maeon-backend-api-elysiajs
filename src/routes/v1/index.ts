@@ -3,6 +3,7 @@ import User from "./User";
 import Auth from "./Auth";
 import Programs from "./Programs";
 import Booking from "./Booking";
+import Payment from "./Payment";
 import { getThaiDate } from "../../../lib/lib";
 
 const app = new Elysia()
@@ -10,6 +11,7 @@ const app = new Elysia()
     .group("/users", app => app.use(User))
     .group("/programs", app => app.use(Programs))
     .group("/booking", app => app.use(Booking))
+    .group("/payment", app => app.use(Payment))
     .get("/datetime", () => getThaiDate())
 
 export default app;
