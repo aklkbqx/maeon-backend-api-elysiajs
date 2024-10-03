@@ -210,5 +210,5 @@ enum bookings_payment_status {
 
 enum payments_payment_method {
   PROMPTPAY
-  BANK_TRANSFER
+  BANK_ACCOUNT_NUMBER
 }

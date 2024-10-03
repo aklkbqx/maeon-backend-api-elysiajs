@@ -109,7 +109,7 @@ const app = new Elysia()
                     responseData.qr_code = payload;
                     break;
 
-                case 'BANK_TRANSFER':
+                case 'BANK_ACCOUNT_NUMBER':
                     paymentData.bank_account_number = BANK_ACCOUNT_NUMBER
                     paymentData.bank_name = BANK_NAME
                     responseData.bank_account_number = paymentData.bank_account_number;

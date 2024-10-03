@@ -73,11 +73,20 @@ export async function validateAndAdjustSchedule(program: any) {
     console.log('Schedule adjusted and updated:', schedules);
 }
 
-export function getThaiDate() {
-    const date = new Date();
-    const timezoneOffset = 7 * 60;
-    const thailandTime = new Date(date.getTime() + timezoneOffset * 60 * 1000);
-    return thailandTime.toISOString();
+export function getThaiDate(dateString?: string): Date | string {
+    const thailandTimezoneOffset = 7 * 60 * 60 * 1000;
+    if (dateString) {
+        const inputDate = new Date(dateString);
+        if (isNaN(inputDate.getTime())) {
+            throw new Error('Invalid date string provided');
+        }
+        const thailandTime = new Date(inputDate.getTime() + thailandTimezoneOffset);
+        return thailandTime;
+    } else {
+        const currentTime = new Date();
+        const thailandTime = new Date(currentTime.getTime() + thailandTimezoneOffset);
+        return thailandTime.toISOString();
+    }
 }
 
 

@@ -10,8 +10,8 @@ const app = new Elysia()
     .group("/auth", app => app.use(Auth))
     .group("/users", app => app.use(User))
     .group("/programs", app => app.use(Programs))
-    .group("/booking", app => app.use(Booking))
-    .group("/payment", app => app.use(Payment))
+    .group("/bookings", app => app.use(Booking))
+    .group("/payments", app => app.use(Payment))
     .get("/datetime", () => getThaiDate())
 
 export default app;

@@ -52,7 +52,6 @@ const app = new Elysia()
     .post("/start-booking", async ({ body, set, payloadUser }) => {
         try {
             const { people, start_date, end_date, booking_detail } = body as BookingItem
-
             if (!payloadUser) {
                 set.status = 401;
                 return { success: false, message: "token ไม่ถูกต้อง" };
@@ -82,8 +81,8 @@ const app = new Elysia()
                     user_id: payloadUser.id,
                     booking_detail: JSON.stringify(bookingDetails),
                     booking_date: getThaiDate(),
-                    start_date,
-                    end_date,
+                    start_date: getThaiDate(start_date),
+                    end_date: getThaiDate(end_date),
                     people,
                     total_price,
                     status: bookings_status.PENDING,
@@ -153,6 +152,9 @@ const app = new Elysia()
                     booking_id: booking.id,
                     user_id: booking.user_id,
                     booking_date: booking.booking_date,
+                    start_date: booking.start_date,
+                    end_date: booking.end_date,
+                    people: booking.people,
                     total_price: booking.total_price,
                     status: booking.status,
                     payment_status: booking.payment_status,
