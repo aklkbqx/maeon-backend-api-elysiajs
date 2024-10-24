@@ -1,6 +1,6 @@
-import { chromium } from 'playwright';
+import { chromium } from "playwright";
 
-(async () => {
+async function resetSlipCheckCount() {
     const browser = await chromium.launch({ headless: false });
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -16,7 +16,7 @@ import { chromium } from 'playwright';
 
     const buttonSelector = 'button[class="py-3 self-end px-4 inline-flex gap-x-2 text-sm font-medium rounded-lg border border-gray-200 bg-white text-blue-600 shadow-sm hover:bg-gray-50 focus:outline-none focus:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-800 dark:border-neutral-700 dark:hover:bg-neutral-700 dark:focus:bg-neutral-700 dark:text-blue-500"]';
 
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 20; i++) {
         await page.reload();
         await page.waitForLoadState('networkidle');
 
@@ -41,6 +41,6 @@ import { chromium } from 'playwright';
 
         await page.waitForTimeout(2000);
     }
-
     await browser.close();
-})();
+    return 10;
+}

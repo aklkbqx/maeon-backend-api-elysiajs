@@ -1,5 +1,5 @@
 import { Elysia, t } from 'elysia';
-import { PrismaClient, bookings_payment_status, bookings_status } from '@prisma/client';
+import { PrismaClient, bookings_status } from '@prisma/client';
 import { jwt } from '@elysiajs/jwt';
 import { getThaiDate, JWTPayloadUser } from '../../../lib/lib';
 
@@ -14,7 +14,6 @@ export interface BookingItem {
 }
 
 const prisma = new PrismaClient();
-
 const SECRET_KEY = process.env.SECRET_KEY;
 
 if (!SECRET_KEY) {
@@ -49,6 +48,36 @@ const app = new Elysia()
         }
         return { payloadUser, existingUser }
     })
+    .get("/", async ({ set, payloadUser }) => {
+        if (!payloadUser) {
+            set.status = 401;
+            return { success: false, message: "token ไม่ถูกต้อง" };
+        }
+        try {
+            const bookings = await prisma.bookings.findMany({
+                where: { user_id: payloadUser.id }
+            });
+            if (!bookings) {
+                set.status = 404;
+                return {
+                    success: false,
+                    message: "ไม่มีข้อมูลการจองของคุณ"
+                };
+            }
+            return {
+                success: true,
+                bookings
+            };
+        } catch (error) {
+            set.status = 500;
+            console.error(error);
+            return {
+                success: false,
+                message: "เกิดข้อผิดพลาดขณะดึงข้อมูลรายละเอียดการจองทั้งหมดของคุณ",
+                error: error instanceof Error ? error.message : String(error)
+            };
+        }
+    })
     .post("/start-booking", async ({ body, set, payloadUser }) => {
         try {
             const { people, start_date, end_date, booking_detail } = body as BookingItem
@@ -59,34 +88,28 @@ const app = new Elysia()
 
             let total_price = 0;
             const bookingDetails = await Promise.all(booking_detail.map(async (item) => {
-
                 const program = await prisma.programs.findUnique({
                     where: { id: item.program_id },
-                    include: { programtypes: true, program_images: true }
+                    include: { program_types: true }
                 });
-
                 if (!program) { throw new Error(`ไม่พบโปรแกรมที่มี ID ${item.program_id}`); }
-
                 total_price += program.total_price.toNumber() * people;
-
                 return {
                     program_id: item.program_id,
                     program_name: program.name,
-                    people: people,
                 };
             }));
 
             const booking = await prisma.bookings.create({
                 data: {
                     user_id: payloadUser.id,
-                    booking_detail: JSON.stringify(bookingDetails),
+                    booking_details: JSON.stringify(bookingDetails),
                     booking_date: getThaiDate(),
                     start_date: getThaiDate(start_date),
                     end_date: getThaiDate(end_date),
                     people,
                     total_price,
                     status: bookings_status.PENDING,
-                    payment_status: bookings_payment_status.UNPAID,
                 }
             });
 
@@ -144,7 +167,7 @@ const app = new Elysia()
                 };
             }
 
-            const bookingDetails = JSON.parse(booking.booking_detail);
+            const bookingDetails = JSON.parse(booking.booking_details);
 
             return {
                 success: true,
@@ -157,7 +180,6 @@ const app = new Elysia()
                     people: booking.people,
                     total_price: booking.total_price,
                     status: booking.status,
-                    payment_status: booking.payment_status,
                     programs: bookingDetails
                 }
             };

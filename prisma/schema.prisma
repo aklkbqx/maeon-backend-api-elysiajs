@@ -7,96 +7,131 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model activities {
+model accommodation {
   id          Int       @id @default(autoincrement())
-  name        String    @db.VarChar(255)
-  description String?   @db.Text
-  duration    Int?
-  cost        Decimal?  @db.Decimal(10, 2)
   location_id Int
-  created_at  DateTime? @default(now()) @db.Timestamp(0)
+  description String    @db.Text
+  address     String    @db.Text
+  contact     String    @db.LongText
+  interest    String?   @db.Text
+  product     String?   @db.Text
+  activites   String?   @db.Text
+  check_in    String?   @map("check-in") @db.Text
+  check_out   String?   @map("check-out") @db.Text
+  health      String?   @db.Text
+  date_info   String?   @db.LongText
+  service_fee String?   @db.Text
+  images      String?   @db.LongText
+  created_at  DateTime  @db.Timestamp(0)
   updated_at  DateTime? @db.Timestamp(0)
-  locations   locations @relation(fields: [location_id], references: [id], map: "activities_locationid_fkey")
+  locations   locations @relation(fields: [location_id], references: [id], map: "accommodation_ibfk_1")
 
   @@index([location_id], map: "location_id")
 }
 
-model locations {
-  id             Int            @id @default(autoincrement())
-  name           String         @db.VarChar(255)
-  type           Int
-  description    String?        @db.Text
-  address        String?        @db.Text
-  subdistrict_id Int?
-  website        String?        @db.VarChar(255)
-  location_map   String         @db.LongText
-  time_slots     String         @db.LongText
-  owner_id       Int
-  isActive       Boolean        @default(false)
-  created_at     DateTime?      @default(now()) @db.Timestamp(0)
-  updated_at     DateTime?      @db.Timestamp(0)
-  activities     activities[]
-  locationtype   location_types @relation(fields: [type], references: [id], map: "locations_ibfk_1")
-  subdistricts   subdistricts?  @relation(fields: [subdistrict_id], references: [id], onDelete: Restrict, map: "locations_ibfk_2")
-  users          users          @relation(fields: [owner_id], references: [id], map: "locations_ibfk_3")
+model attractions {
+  id          Int       @id @default(autoincrement())
+  location_id Int
+  description String?   @db.Text
+  address     String    @db.Text
+  contact     String    @db.LongText
+  interest    String?   @db.Text
+  product     String?   @db.Text
+  activites   String?   @db.Text
+  health      String?   @db.Text
+  date_info   String?   @db.LongText
+  service_fee String?   @db.Text
+  images      String?   @db.LongText
+  created_at  DateTime  @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  locations   locations @relation(fields: [location_id], references: [id], map: "attractions_ibfk_1")
 
-  @@index([owner_id], map: "owner_id")
-  @@index([subdistrict_id], map: "subdistrict_id")
-  @@index([type], map: "type")
+  @@index([location_id], map: "location_id")
 }
 
-model programs {
-  id                  Int              @id @default(autoincrement())
-  type                Int
-  name                String           @db.VarChar(255)
-  description         String           @db.Text
-  schedules           String           @db.LongText
-  total_price         Decimal          @db.Decimal(8, 2)
-  wellness_dimensions String?          @db.Text
-  created_by          Int?
-  created_at          DateTime?        @default(now()) @db.Timestamp(0)
-  updated_at          DateTime?        @db.Timestamp(0)
-  program_images      program_images[]
-  programtypes        program_types    @relation(fields: [type], references: [id], map: "programs_ibfk_1")
-  users               users?           @relation(fields: [created_by], references: [id], onDelete: Restrict, map: "programs_ibfk_2")
+model bookings {
+  id              Int             @id @default(autoincrement())
+  user_id         Int
+  booking_details String          @db.LongText
+  booking_date    DateTime        @db.Date
+  start_date      DateTime        @db.Date
+  end_date        DateTime        @db.Date
+  people          Int
+  total_price     Decimal         @db.Decimal(10, 2)
+  status          bookings_status @default(PENDING)
+  created_at      DateTime?       @default(now()) @db.Timestamp(0)
+  updated_at      DateTime        @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
+  users           users           @relation(fields: [user_id], references: [id], map: "bookings_ibfk_1")
+  payments        payments?
 
-  @@index([type], map: "type")
-  @@index([created_by], map: "created_by")
+  @@index([user_id], map: "user_id")
 }
 
-model subdistricts {
-  id         Int         @id @default(autoincrement())
-  name       String      @unique(map: "name") @db.VarChar(100)
-  created_at DateTime?   @default(now()) @db.Timestamp(0)
-  updated_at DateTime?   @db.Timestamp(0)
-  locations  locations[]
-}
+model learning_resources {
+  id               Int       @id @default(autoincrement())
+  location_id      Int
+  description      String    @db.Text
+  address          String    @db.Text
+  contact          String    @db.LongText
+  interest         String?   @db.Text
+  product          String?   @db.Text
+  activites        String?   @db.Text
+  health           String?   @db.Text
+  time_per_cycle   Int?
+  people_per_cycle Int?
+  cost             Int?
+  advance_booking  Int?
+  date_info        String?   @db.LongText
+  images           String?   @db.LongText
+  created_at       DateTime  @db.Timestamp(0)
+  updated_at       DateTime? @db.Timestamp(0)
+  locations        locations @relation(fields: [location_id], references: [id], map: "learning_resources_ibfk_1")
 
-model users {
-  id                 Int             @id @default(autoincrement())
-  firstname          String          @db.VarChar(150)
-  lastname           String          @db.VarChar(150)
-  email              String          @unique(map: "email") @db.VarChar(150)
-  password           String          @db.VarChar(60)
-  tel                String          @db.VarChar(20)
-  profile_picture    String?         @default("default-profile.jpg") @db.VarChar(150)
-  role               user_role?      @default(USER)
-  usage_status       usage_status?   @default(OFFLINE)
-  status_last_update DateTime?       @default(now()) @db.Timestamp(0)
-  account_status     account_status? @default(ACTIVE)
-  created_at         DateTime?       @default(now()) @db.Timestamp(0)
-  updated_at         DateTime?       @db.Timestamp(0)
-  bookings           bookings[]
-  locations          locations[]
-  programs           programs[]
+  @@index([location_id], map: "location_id")
 }
 
 model location_types {
   id         Int         @id @default(autoincrement())
   name       String      @unique(map: "name") @db.VarChar(50)
   created_at DateTime    @default(now()) @db.Timestamp(0)
-  updated_at DateTime?   @default(now()) @db.Timestamp(0)
   locations  locations[]
+}
+
+model locations {
+  id                 Int                  @id @default(autoincrement())
+  name               String               @db.VarChar(255)
+  type               Int
+  note               String?              @db.Text
+  time_slots         String?              @db.LongText
+  owner_id           Int?
+  isActive           Boolean              @default(false)
+  created_at         DateTime?            @default(now()) @db.Timestamp(0)
+  updated_at         DateTime             @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
+  accommodation      accommodation[]
+  attractions        attractions[]
+  learning_resources learning_resources[]
+  location_types     location_types       @relation(fields: [type], references: [id], map: "locations_ibfk_1")
+  users              users?               @relation(fields: [owner_id], references: [id], onDelete: Restrict, map: "locations_ibfk_3")
+  restaurant         restaurant[]
+
+  @@index([owner_id], map: "owner_id")
+  @@index([type], map: "type")
+}
+
+model payments {
+  id             Int                      @id @default(autoincrement())
+  booking_id     Int                      @unique(map: "booking_id_2")
+  payment_method payments_payment_method?
+  payment_data   String?                  @db.LongText
+  slip_image     String?                  @db.VarChar(255)
+  status         payments_status          @default(PENDING)
+  transaction_id String?                  @db.VarChar(255)
+  payment_date   DateTime?                @db.DateTime(0)
+  created_at     DateTime?                @default(now()) @db.Timestamp(0)
+  updated_at     DateTime                 @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
+  bookings       bookings                 @relation(fields: [booking_id], references: [id], map: "payments_ibfk_1")
+
+  @@index([booking_id], map: "booking_id")
 }
 
 model program_types {
@@ -104,86 +139,81 @@ model program_types {
   name        String     @db.VarChar(255)
   description String     @db.Text
   created_at  DateTime?  @default(now()) @db.Timestamp(0)
-  updated_at  DateTime?  @default(now()) @db.Timestamp(0)
   programs    programs[]
 }
 
-model program_images {
-  id              Int       @id @default(autoincrement())
-  program_id      Int
-  image_name_data String    @db.LongText
-  created_at      DateTime  @default(now()) @db.Timestamp(0)
-  updated_at      DateTime? @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
-  programs        programs  @relation(fields: [program_id], references: [id], map: "program_images_ibfk_1")
+model programs {
+  id                  Int           @id @default(autoincrement())
+  type                Int
+  name                String        @db.VarChar(255)
+  description         String        @db.Text
+  schedules           String        @db.LongText
+  total_price         Decimal       @db.Decimal(8, 2)
+  wellness_dimensions String?       @db.Text
+  images              String?       @db.LongText
+  created_by          Int?
+  created_at          DateTime?     @default(now()) @db.Timestamp(0)
+  updated_at          DateTime      @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
+  program_types       program_types @relation(fields: [type], references: [id], map: "programs_ibfk_1")
+  users               users?        @relation(fields: [created_by], references: [id], onDelete: Restrict, map: "programs_ibfk_2")
 
-  @@index([program_id], map: "program_id")
+  @@index([created_by], map: "created_by")
+  @@index([type], map: "type")
 }
 
-model payments {
-  id               Int                     @id @default(autoincrement())
-  booking_id       Int
-  amount           Decimal                 @db.Decimal(10, 2)
-  payment_method   payments_payment_method
-  payment_data     String                  @db.LongText
-  slip_image       String                  @db.VarChar(255)
-  status           payments_status         @default(PENDING)
-  transaction_id   String?                 @db.VarChar(255)
-  payment_date     DateTime?               @db.DateTime(0)
-  created_at       DateTime?               @default(now()) @db.Timestamp(0)
-  updated_at       DateTime?               @default(now()) @db.Timestamp(0)
-  program_bookings bookings                @relation(fields: [booking_id], references: [id], onUpdate: Restrict, map: "payments_ibfk_1")
-
-  @@index([booking_id], map: "booking_id")
-}
-
-model slip_check_count {
+model restaurant {
   id               Int       @id @default(autoincrement())
-  remaining_checks Int       @default(10)
-  last_updated     DateTime? @default(now()) @db.Timestamp(0)
-  last_reset       DateTime? @db.Timestamp(0)
+  location_id      Int
+  description      String    @db.Text
+  address          String    @db.Text
+  contact          String    @db.LongText
+  Interesting_menu String?   @db.Text
+  served_per_hour  Int?
+  health           String?   @db.Text
+  date_info        String?   @db.LongText
+  service_fee      String?   @db.Text
+  images           String?   @db.LongText
+  created_at       DateTime  @db.Timestamp(0)
+  updated_at       DateTime? @db.Timestamp(0)
+  locations        locations @relation(fields: [location_id], references: [id], map: "restaurant_ibfk_1")
 
-  @@index([remaining_checks], map: "idx_slip_check_count_remaining")
+  @@index([location_id], map: "location_id")
 }
 
-model bookings {
-  id             Int                     @id @default(autoincrement())
-  user_id        Int
-  booking_detail String                  @db.LongText
-  booking_date   DateTime                @db.Date
-  start_date     DateTime                @db.Date
-  end_date       DateTime                @db.Date
-  people         Int
-  total_price    Decimal                 @db.Decimal(10, 2)
-  status         bookings_status         @default(PENDING)
-  payment_status bookings_payment_status @default(UNPAID)
-  created_at     DateTime?               @default(now()) @db.Timestamp(0)
-  updated_at     DateTime?               @db.Timestamp(0)
-  users          users                   @relation(fields: [user_id], references: [id], map: "bookings_ibfk_1")
-  payments       payments[]
-
-  @@index([user_id], map: "user_id")
+model slip_remaining {
+  id         Int      @id @default(autoincrement())
+  count      Int
+  updated_at DateTime @default(dbgenerated("('0000-00-00 00:00:00')")) @db.Timestamp(0)
 }
 
-enum account_status {
-  DELETE
-  ACTIVE
-  SUSPEND
+model subdistricts {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique(map: "name") @db.VarChar(100)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
 }
 
-enum usage_status {
-  OFFLINE
-  ONLINE
+model users {
+  id                 Int                   @id @default(autoincrement())
+  firstname          String                @db.VarChar(150)
+  lastname           String                @db.VarChar(150)
+  email              String                @unique(map: "email") @db.VarChar(150)
+  password           String                @db.VarChar(60)
+  tel                String                @db.VarChar(20)
+  profile_picture    String?               @default("default-profile.jpg") @db.VarChar(150)
+  role               users_role?           @default(user)
+  usage_status       users_usage_status?   @default(OFFLINE)
+  status_last_update DateTime?             @default(now()) @db.Timestamp(0)
+  account_status     users_account_status? @default(ACTIVE)
+  created_at         DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at         DateTime?             @db.Timestamp(0)
+  bookings           bookings[]
+  locations          locations[]
+  programs           programs[]
 }
 
-enum user_role {
-  USER
-  ADMIN
-  HOSPITAL
-  MERCHANT
-  TOUR
-  LEARNING_RESOURCE
-  HOTEL
-  SEASONAL_TRAVEL
+enum payments_payment_method {
+  PROMPTPAY
+  BANK_ACCOUNT_NUMBER
 }
 
 enum payments_status {
@@ -202,13 +232,23 @@ enum bookings_status {
   COMPLETED
 }
 
-enum bookings_payment_status {
-  UNPAID
-  PAID
-  REFUNDED
+enum users_usage_status {
+  OFFLINE
+  ONLINE
 }
 
-enum payments_payment_method {
-  PROMPTPAY
-  BANK_ACCOUNT_NUMBER
+enum users_account_status {
+  DELETE
+  ACTIVE
+  SUSPEND
+}
+
+enum users_role {
+  user
+  admin
+  hospital
+  restaurant
+  attractions
+  learning_resources
+  accommodation
 }

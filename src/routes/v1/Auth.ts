@@ -1,15 +1,19 @@
 import { Elysia, t } from 'elysia';
-import { PrismaClient, user_role, usage_status, account_status, } from '@prisma/client';
+import { PrismaClient, users_account_status, users_role, users_usage_status } from '@prisma/client';
 import { jwt } from '@elysiajs/jwt';
 import { getThaiDate, JWTPayloadUser } from '../../../lib/lib';
 import { randomInt } from 'crypto';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
-const SECRET_KEY = process.env.SECRET_KEY;
+const SECRET_KEY = process.env.SECRET_KEY
+const SMS_API_KEY = process.env.SMS_API_KEY
+const SMS_API_SECRET = process.env.SMS_API_SECRET
 
-if (!SECRET_KEY) {
-    throw new Error('SECRET_KEY is not defined.');
+if (!SECRET_KEY || !SMS_API_KEY || !SMS_API_SECRET) {
+    throw new Error("Key and Secret Key undefined!");
 }
+
 interface TempUser {
     firstname: string;
     lastname: string;
@@ -23,7 +27,7 @@ const tempUsers = new Map<string, TempUser>();
 
 const app = new Elysia()
     .use(jwt({ name: 'jwt', secret: SECRET_KEY }))
-    .post('/register', async ({ body, set, jwt }) => {
+    .post('/register', async ({ body, set }) => {
         const { firstname, lastname, tel, email, password } = body;
         try {
             const existingUser = await prisma.users.findUnique({
@@ -55,8 +59,31 @@ const app = new Elysia()
             }
 
             tempUsers.set(tel, tempUser);
-
             console.log(`OTP for ${tel}: ${otp}`);
+            // try {
+            //     const encoded = Buffer.from(SMS_API_KEY + ':' + SMS_API_SECRET).toString('base64');
+            //     const response = await axios.post("https://api-v2.thaibulksms.com/sms", {
+            //         msisdn: tel,
+            //         message: `รหัสยืนยัน OTP ของคุณคือ ${otp}`,
+            //         sender: "Demo"
+            //     }, {
+            //         headers: {
+            //             "Authorization": `Basic ${encoded}`,
+            //             "Content-Type": "application/json"
+            //         }
+            //     })
+            //     if (response.data) {
+            //         console.log(`OTP for ${tel}: ${otp}`);
+            //     } else {
+            //         throw new Error(`ไม่สามารถส่ง OTP ไปยัง ${tel} ได้ กรุณาลองใหม่อีกครั้ง`);
+            //     }
+            // } catch (error) {
+            //     set.status = 400;
+            //     return {
+            //         success: false,
+            //         message: error
+            //     }
+            // }
 
             set.status = 201;
             return {
@@ -101,10 +128,10 @@ const app = new Elysia()
                     tel: tempUser.tel,
                     email: tempUser.email,
                     password: tempUser.password,
-                    role: user_role.USER,
-                    usage_status: usage_status.ONLINE,
+                    role: users_role.user,
+                    usage_status: users_usage_status.ONLINE,
                     status_last_update: getThaiDate(),
-                    account_status: account_status.ACTIVE,
+                    account_status: users_account_status.ACTIVE,
                     created_at: getThaiDate(),
                 }
             });
@@ -144,7 +171,7 @@ const app = new Elysia()
             return { success: true, message: 'ส่ง OTP ใหม่แล้ว' };
         } catch (error) {
             set.status = 500;
-            return { success: false, message: 'ข้อผิดพลาดของเซิร์ฟเวอร์ภายใน', error: (error as Error).message };
+            return { success: false, message: 'ไม่สามารถส่ง OTP ใหม่ได้ กรุณาลองใหม่อีกครั้ง', error: (error as Error).message };
         }
     }, {
         body: t.Object({
@@ -172,7 +199,7 @@ const app = new Elysia()
                     message: "รหัสผ่านไม่ถูกต้อง."
                 };
             }
-            if (user.account_status !== account_status.ACTIVE) {
+            if (user.account_status !== users_account_status.ACTIVE) {
                 set.status = 403;
                 return {
                     success: false,
@@ -183,7 +210,7 @@ const app = new Elysia()
 
             await prisma.users.update({
                 where: { id: user.id },
-                data: { usage_status: usage_status.ONLINE, status_last_update: getThaiDate() }
+                data: { usage_status: users_usage_status.ONLINE, status_last_update: getThaiDate() }
             });
 
             return {
@@ -222,7 +249,7 @@ const app = new Elysia()
             await prisma.users.update({
                 where: { id: payload.id },
                 data: {
-                    usage_status: usage_status.OFFLINE,
+                    usage_status: users_usage_status.OFFLINE,
                     status_last_update: getThaiDate()
                 }
             });

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header {
+            padding: 15px;
+            background: #1a73e8;
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #b3e5fc;
+        }
+
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fff;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.system {
+            background: #f1f1f1;
+            color: #666;
+            text-align: center;
+            font-size: 14px;
+            margin: 10px auto;
+        }
+
+        .message.mine {
+            background: #1a73e8;
+            color: white;
+            margin-left: auto;
+        }
+
+        .message.other {
+            background: #e9ecef;
+            color: black;
+        }
+
+        .username {
+            font-size: 12px;
+            margin-bottom: 5px;
+            opacity: 0.7;
+        }
+
+        .timestamp {
+            font-size: 11px;
+            opacity: 0.7;
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        .input-area {
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        button {
+            padding: 8px 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>Chat Room: <span id="roomId"></span></h2>
+            <div class="status" id="status">Disconnected</div>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type a message...">
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const roomId = 'room1';
+        const username = 'user' + Math.floor(Math.random() * 1000);
+        let ws = null;
+
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const statusDiv = document.getElementById('status');
+        const roomIdSpan = document.getElementById('roomId');
+
+        roomIdSpan.textContent = roomId;
+
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://localhost:5001/api/v1/socket/chat/${roomId}`);
+
+            ws.onopen = () => {
+                statusDiv.textContent = 'Connected';
+                sendButton.disabled = false;
+            };
+
+            ws.onclose = () => {
+                statusDiv.textContent = 'Disconnected';
+                sendButton.disabled = true;
+                setTimeout(connectWebSocket, 5000);
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log(data);
+                
+                // addMessage(data);
+            };
+        }
+
+        function addMessage(data) {
+            const messageDiv = document.createElement('div');
+            if (data.type === 'SYSTEM') {
+                messageDiv.className = 'message system';
+                messageDiv.innerHTML = `
+                    <div>${data.message}</div>
+                    <div class="timestamp">${new Date(data.timestamp).toLocaleTimeString()}</div>
+                `;
+            } else {
+                messageDiv.className = `message ${data.username === username ? 'mine' : 'other'}`;
+                messageDiv.innerHTML = `
+                    <div class="username">${data.username}</div>
+                    <div>${data.message}</div>
+                    <div class="timestamp">${new Date(data.timestamp).toLocaleTimeString()}</div>
+                `;
+            }
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // ฟังก์ชันส่งข้อความ
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !ws) return;
+
+            const data = {
+                username,
+                message
+            };
+
+            ws.send(JSON.stringify(data));
+            messageInput.value = '';
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        connectWebSocket();
+    </script>
+</body>
+
+</html>
