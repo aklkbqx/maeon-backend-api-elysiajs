@@ -7,7 +7,6 @@ type ChatMessage = {
     timestamp: number
 }
 
-
 const app = new Elysia()
     .ws('/chat/:roomId', {
         body: t.Object({

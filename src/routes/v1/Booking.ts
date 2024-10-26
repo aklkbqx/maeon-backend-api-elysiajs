@@ -29,7 +29,6 @@ const app = new Elysia()
             return { success: false, message: "ไม่พบ Token การยืนยันตัวตน" };
         }
         const token = authHeader.split(' ')[1];
-
         const payloadUser = await jwt.verify(token) as JWTPayloadUser;
         if (!payloadUser) {
             set.status = 401;

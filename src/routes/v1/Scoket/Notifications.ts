@@ -1,18 +1,17 @@
 import jwt from '@elysiajs/jwt'
 import { Elysia, t } from 'elysia'
 import { JWTPayloadUser } from '../../../../lib/lib';
-import { Prisma, PrismaClient } from '@prisma/client';
-
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
-const SECRET_KEY = process.env.SECRET_KEY
+const SECRET_KEY = process.env.SECRET_KEY;
 
 if (!SECRET_KEY) {
     throw new Error("Key and Secret Key undefined!");
 }
 
 export enum NotificationType {
-    SYSTEM = "SYSTEM",                   // แจ้งเตือนจากระบบ
+    SYSTEM = "SYSTEM",                  // แจ้งเตือนจากระบบ
     CHAT = "CHAT",                      // แจ้งเตือนข้อความใหม่
     ORDER = "ORDER",                    // แจ้งเตือนคำสั่งซื้อ
     PAYMENT = "PAYMENT",                // แจ้งเตือนการชำระเงิน
@@ -32,7 +31,6 @@ const app = new Elysia()
         const existingUser = await prisma.users.findUnique({
             where: { id: payloadUser.id },
         });
-
         if (!existingUser) {
             return {
                 success: false,
@@ -40,7 +38,6 @@ const app = new Elysia()
             };
         }
         return { payloadUser, existingUser }
-
     })
     .ws('/notification', {
         query: t.Object({
@@ -70,7 +67,7 @@ const app = new Elysia()
                 })
                 ws.close()
             } else {
-                console.log(`user: '${userData?.firstname}' is Connected!, role: ${userData?.role}`);
+                // console.log(`user: '${userData?.firstname}' is Connected!, role: ${userData?.role}`);
                 ws.subscribe("notification")
             }
         },
@@ -78,11 +75,10 @@ const app = new Elysia()
             ws.publish("notification", { type, body, title, receive, data })
         },
         close(ws) {
-            const userData = ws.data.existingUser
-            console.log(`user: '${userData?.firstname}' is Disconnected!`);
+            // const userData = ws.data.existingUser
+            // console.log(`user: '${userData?.firstname}' is Disconnected!`);
             ws.unsubscribe("notification")
         }
     })
-
 
 export default app

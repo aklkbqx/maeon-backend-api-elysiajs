@@ -5,6 +5,7 @@ import Auth from "./Auth";
 import Booking from "./Booking";
 import Payment from "./Payment";
 import Locations from "./Locations";
+import Notifications from "./Notifications";
 // import NavigateTravel from "./NavigateTravel";
 import Socket from "./Scoket/index"
 import { getThaiDate } from "../../../lib/lib";
@@ -16,6 +17,7 @@ const app = new Elysia()
     .group("/bookings", app => app.use(Booking))
     .group("/payments", app => app.use(Payment))
     .group("/locations", app => app.use(Locations))
+    .group("/notifications", app => app.use(Notifications))
     // .group("/navigate-map", app => app.use(NavigateTravel))
     .get("/datetime", () => getThaiDate())
     .group("/ws", app => app.use(Socket))

@@ -16,8 +16,8 @@ model accommodation {
   interest    String?   @db.Text
   product     String?   @db.Text
   activites   String?   @db.Text
-  check_in    String?   @map("check-in") @db.Text
-  check_out   String?   @map("check-out") @db.Text
+  check_in    String?   @db.Text
+  check_out   String?   @db.Text
   health      String?   @db.Text
   date_info   String?   @db.LongText
   service_fee String?   @db.Text
@@ -208,7 +208,26 @@ model users {
   updated_at         DateTime?             @db.Timestamp(0)
   bookings           bookings[]
   locations          locations[]
+  notifications      notifications[]
   programs           programs[]
+}
+
+model notifications {
+  id         Int                  @id @default(autoincrement())
+  type       notifications_type
+  title      String               @db.VarChar(255)
+  body       String               @db.Text
+  data       String?              @db.LongText
+  user_id    Int
+  status     notifications_status @default(UNREAD)
+  created_at DateTime             @default(now()) @db.Timestamp(0)
+  updated_at DateTime?            @db.Timestamp(0)
+  is_deleted Boolean              @default(false)
+  users      users                @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "notifications_ibfk_1")
+
+  @@index([status], map: "idx_status")
+  @@index([type], map: "idx_type")
+  @@index([user_id], map: "idx_user_id")
 }
 
 enum payments_payment_method {
@@ -251,4 +270,21 @@ enum users_role {
   attractions
   learning_resources
   accommodation
+}
+
+enum notifications_type {
+  SYSTEM
+  CHAT
+  ORDER
+  PAYMENT
+  PROMOTION
+  ANNOUNCEMENT
+  STATUS_UPDATE
+  REMINDER
+}
+
+enum notifications_status {
+  UNREAD
+  READ
+  ARCHIVED
 }

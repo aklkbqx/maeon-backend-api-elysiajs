@@ -3,7 +3,6 @@ import { PrismaClient, users_account_status, users_role, users_usage_status } fr
 import { jwt } from '@elysiajs/jwt';
 import { getThaiDate, JWTPayloadUser } from '../../../lib/lib';
 import { randomInt } from 'crypto';
-import axios from 'axios';
 
 const prisma = new PrismaClient();
 const SECRET_KEY = process.env.SECRET_KEY
