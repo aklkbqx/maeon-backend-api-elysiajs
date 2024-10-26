@@ -1,4 +1,4 @@
-import { account_status, PrismaClient, usage_status, user_role } from '@prisma/client';
+import { users_account_status, PrismaClient, users_usage_status, users_role } from '@prisma/client';
 import { parseISO, addMinutes, format } from "date-fns"
 
 export type JWTPayloadUser = {
@@ -13,10 +13,10 @@ export interface USER_TYPE {
     email: string;
     tel: string;
     profile_picture: string;
-    role: user_role;
-    usage_status: usage_status;
+    role: users_role;
+    usage_status: users_usage_status;
     statusLastUpdate: Date;
-    account_status: account_status;
+    account_status: users_account_status;
     createdAt: Date
     updatedAt: Date
 }
